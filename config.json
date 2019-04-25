@@ -1,0 +1,19 @@
+{
+    "applyMember"        : "APPLY",
+    "applyCheckMember"   : "APPLYCHK",
+    "checkVersionMember" : "CHECKVE",
+    "checkVersionSpoolId": "102",
+    "expectedFixLevel"   : "SO07157",
+    "localFile"          : "SO07157",
+    "localFolder"        : "bin",
+    "maintainedMember"   : "GSVXASRM",
+    "maintainedPds"      : "CNM4BLOD",
+    "receiveMember"      : "RECEIVE",
+    "rejectMember"       : "REJECT",
+    "remoteFile"         : "SO07157",
+    "remoteFolder"       : "/u/users/baumi07",
+    "remoteJclPds"       : "BAUMI07.MTE.JCL",
+    "runtimeEnv"         : "PRODUCT.SVRUN1.MSTRBRS",
+    "smpeEnv"            : "PRODUCT.SYSV15.SMPE1",
+    "ssmResource"        : "SYSV15"
+}
