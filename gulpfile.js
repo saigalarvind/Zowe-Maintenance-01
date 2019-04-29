@@ -143,7 +143,7 @@ function changeResourceState(resource, state, callback, apf) {
           callback(err);
         } else if(typeof apf !== 'undefined'){
           // Resource state successfully changed and needs APF authorized
-          command = 'bright zos-console issue command "SETPROG APF,ADD,DSNAME=' + apf + '"';
+          command = 'bright zos-console issue command "SETPROG APF,ADD,DSNAME=' + apf + ',SMS"';
           simpleCommand(command, callback);
         } else { //Resource state is changed, does not need APF authorized
           callback();
@@ -213,8 +213,8 @@ gulp.task('start1', 'Start SSM managed resource1', function (callback) {
 });
 
 gulp.task('start2', 'Start SSM managed resource2', function (callback) {
-  var apf = config.runtimeEnv + '.' + config.maintainedPds;
-  changeResourceState(config.ssmResource2, "UP", callback, apf);
+  // var apf = config.runtimeEnv + '.' + config.maintainedPds;
+  changeResourceState(config.ssmResource2, "UP", callback);
 });
 
 gulp.task('stop1', 'Stop SSM managed resource1', function (callback) {
