@@ -63,14 +63,17 @@ function awaitSSMState(resource, desiredState, callback, tries = 30, wait = 1000
   if (tries > 0) {
     sleep(wait);
     cmd.get(
-    'bright ops show resource ' + resource + ' --rff retcode --rft string',
+    'bright ops show resource ' + resource,
     function (err, data, stderr) {
       if(err){
         callback(err);
       } else if (stderr){
         callback(new Error("\nCommand:\n" + command + "\n" + stderr + "Stack Trace:"));
       } else {
-        currentState = data.trim();
+        //First find the header
+        var pattern = new RegExp("current:.*");
+        var currentState = data.match(pattern)[0].split(' ')[1];
+
         //check if currentState is the desiredState
         if (currentState != desiredState) {
           awaitSSMState(resource, desiredState, callback, tries - 1, wait);
@@ -117,7 +120,15 @@ function sleep(ms) {
 * @param {string}                 [apf]          data set to APF authorize if required
 */
 function changeResourceState(resource, state, callback, apf) {
-  var command = 'bright jobs start resource ' + resource;
+  var command;
+  if(state === "UP") {
+    command = 'bright ops start resource ' + resource;
+  } else if(state === "DOWN") {
+    command = 'bright ops stop resource ' + resource;
+  } else{
+    callback(new Error("\nUnrecognized desired state of: " + state + ". Expected UP or DOWN."));
+  }
+  
   
   // Submit job, await completion
   cmd.get(command, function (err, data, stderr) {
@@ -127,21 +138,13 @@ function changeResourceState(resource, state, callback, apf) {
       callback(new Error("\nCommand:\n" + command + "\n" + stderr + "Stack Trace:"));
     } else {
       // Await the SSM Resource Status to be up
-      awaitSSMState(config.ssmResource, state, function(err){
+      awaitSSMState(resource, state, function(err){
         if(err){
           callback(err);
         } else if(typeof apf !== 'undefined'){
           // Resource state successfully changed and needs APF authorized
           command = 'bright zos-console issue command "SETPROG APF,ADD,DSNAME=' + apf + '"';
-          cmd.get(command, function (err, data, stderr) {
-            if(err){
-              callback(err);
-            } else if (stderr){
-              callback(new Error("\nCommand:\n" + command + "\n" + stderr + "Stack Trace:"));
-            } else {
-              callback();
-            }
-          });
+          simpleCommand(command, callback);
         } else { //Resource state is changed, does not need APF authorized
           callback();
         }
@@ -204,13 +207,22 @@ gulp.task('reject', 'Reject Maintenance', function (callback) {
   submitJob(ds, 0, callback);
 });
 
-gulp.task('start', 'Start SSM managed resource', function (callback) {
+gulp.task('start1', 'Start SSM managed resource1', function (callback) {
   var apf = config.runtimeEnv + '.' + config.maintainedPds;
-  changeResourceState(config.ssmResource, "up", callback, apf);
+  changeResourceState(config.ssmResource1, "UP", callback);
 });
 
-gulp.task('stop', 'Stop SSM managed resource', function (callback) {
-  changeResourceState(config.ssmResource, "down", callback);
+gulp.task('start2', 'Start SSM managed resource2', function (callback) {
+  var apf = config.runtimeEnv + '.' + config.maintainedPds;
+  changeResourceState(config.ssmResource2, "UP", callback, apf);
+});
+
+gulp.task('stop1', 'Stop SSM managed resource1', function (callback) {
+  changeResourceState(config.ssmResource1, "DOWN", callback);
+});
+
+gulp.task('stop2', 'Stop SSM managed resource2', function (callback) {
+  changeResourceState(config.ssmResource2, "DOWN", callback);
 });
 
 gulp.task('upload', 'Upload Maintenance to USS', function (callback) {
@@ -218,4 +230,6 @@ gulp.task('upload', 'Upload Maintenance to USS', function (callback) {
   simpleCommand(command, callback);
 });
 
-gulp.task('deploy', 'Deploy Maintenance', gulpSequence('upload','receive','apply-check','apply'));
+gulp.task('deploy', 'Deploy Maintenance', gulpSequence('upload','receive','apply-check','apply','stop','copy','start'));
+gulp.task('start', 'Start SSM managed resources', gulpSequence('start1','start2'));
+gulp.task('stop', 'Stop SSM managed resources', gulpSequence('stop2', 'stop1'));
