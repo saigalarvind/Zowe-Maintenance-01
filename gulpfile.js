@@ -207,6 +207,11 @@ gulp.task('reject', 'Reject Maintenance', function (callback) {
   submitJob(ds, 0, callback);
 });
 
+gulp.task('restore', 'Restore Maintenance', function (callback) {
+  var ds = config.remoteJclPds + '(' + config.restoreMember + ')';
+  submitJob(ds, 0, callback);
+});
+
 gulp.task('start1', 'Start SSM managed resource1', function (callback) {
   var apf = config.runtimeEnv + '.' + config.maintainedPds;
   changeResourceState(config.ssmResource1, "UP", callback);
@@ -231,5 +236,6 @@ gulp.task('upload', 'Upload Maintenance to USS', function (callback) {
 });
 
 gulp.task('deploy', 'Deploy Maintenance', gulpSequence('upload','receive','apply-check','apply','stop','copy','start'));
+gulp.task('reset', 'Reset Maintenance', gulpSequence('reject','restore','stop','copy','start'));
 gulp.task('start', 'Start SSM managed resources', gulpSequence('start1','start2'));
 gulp.task('stop', 'Stop SSM managed resources', gulpSequence('stop2', 'stop1'));

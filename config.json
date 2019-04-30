@@ -10,6 +10,7 @@
     "maintainedPds"      : "CNM4BLOD",
     "receiveMember"      : "RECEIVE",
     "rejectMember"       : "REJECT",
+    "restoreMember"      : "RESTORE",
     "remoteFile"         : "SO07157",
     "remoteFolder"       : "/u/users/cust002",
     "remoteJclPds"       : "CUST002.MTE.JCL",
