@@ -12,10 +12,10 @@
     "rejectMember"       : "REJECT",
     "restoreMember"      : "RESTORE",
     "remoteFile"         : "SO07157",
-    "remoteFolder"       : "/u/users/cust002",
-    "remoteJclPds"       : "CUST002.MTE.JCL",
-    "runtimeEnv"         : "PRODUCT.SVRUN2.MSTRBRS",
-    "smpeEnv"            : "PRODUCT.SYSV15.SMPE2",
-    "ssmResource1"       : "GSV2001V",
-    "ssmResource2"       : "GSV2001U"
+    "remoteFolder"       : "/u/users/cust001",
+    "remoteJclPds"       : "CUST001.MTE.JCL",
+    "runtimeEnv"         : "PRODUCT.SVRUN1.MSTRBRS",
+    "smpeEnv"            : "PRODUCT.SYSV15.SMPE1",
+    "ssmResource1"       : "GSV1001V",
+    "ssmResource2"       : "GSV1001U"
 }

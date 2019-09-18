@@ -1,3 +1,4 @@
-bin/
 mochawesome-report/
 node_modules/
+job-archive/
+cust001/
