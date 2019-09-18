@@ -23,20 +23,23 @@ pipeline {
         stage('Upload Maintenance') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                    sh 'echo Upload Maintenance'
+                    // sh 'echo Upload Maintenance'
+                    sh 'gulp upload'
                 }
             }
         }
         stage('Receive') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                    sh 'echo Receive'
+                    // sh 'echo Receive'
+                    sh 'gulp receive'
                 }
+                archiveArtifacts artifacts: 'job-archive/**/*.*'
             }
         }
         stage('Apply-Check') {
             input {
-                message "Proceed to Apply-Check?"
+                message "Review the results of the receive job in the job-archive/receive artifact. Proceed to Apply-Check?"
             }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
