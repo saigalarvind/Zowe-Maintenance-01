@@ -34,36 +34,30 @@ pipeline {
                 }
             }
         }
-        stage('Apply-Check Approval'){
+        stage('Apply-Check') {
             input {
                 message "Proceed to Apply-Check?"
             }
-        }
-        stage('Apply-Check') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
                     sh 'echo Apply-Check'
                 }
             }
         }
-        stage('Apply Approval'){
+        stage('Apply') {
             input {
                 message "Proceed to Apply?"
             }
-        }
-        stage('Apply') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
                     sh 'echo Apply'
                 }
             }
         }
-        stage('Deploy Approval'){
+        stage('Deploy') {
             input {
                 message "Proceed to Deploy?"
             }
-        }
-        stage('Deploy') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
                     //To deploy the maintenace, an OPS profile needs to be created since profile options are not exposed on the command line
