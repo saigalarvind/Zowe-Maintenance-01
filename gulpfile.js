@@ -169,8 +169,9 @@ gulp.task('apply-check', 'Apply Check Maintenance', function (callback) {
 
 gulp.task('copy', 'Copy Maintenance to Runtime', function (callback) {
   var command = 'zowe file-master-plus copy data-set "' + config.smpeEnv + '.' + config.maintainedPds + 
-                '" "' + config.runtimeEnv + '.' + config.maintainedPds + '"';
-  simpleCommand(command, callback);
+                '" "' + config.runtimeEnv + '.' + config.maintainedPds + '"',
+      optionalJenkinsOptions = (typeof process.env.FMP === "undefined") ? "" : process.env.FMP;
+  simpleCommand(command + " " + optionalJenkinsOptions, callback);
 });
 
 gulp.task('receive', 'Receive Maintenance', function (callback) {
