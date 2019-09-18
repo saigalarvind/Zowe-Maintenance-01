@@ -57,31 +57,6 @@ function awaitSSMState(resource, desiredState, callback, tries = 30, wait = 1000
 }
 
 /**
-* Runs command and calls back without error if successful
-* @param {string}           command   command to run
-* @param {awaitJobCallback} callback  function to call after completion
-*/
-function simpleCommand(command, callback){
-  cmd.get(command, function(err, data, stderr) { 
-    if(err){
-      callback(err);
-    } else if (stderr){
-      callback(new Error("\nCommand:\n" + command + "\n" + stderr + "Stack Trace:"));
-    } else {
-      callback();
-    }
-  });
-}
-
-/**
- * Sleep function.
- * @param {number} ms Number of ms to sleep
- */
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
 * Changes state of SSM managed resource. Callback is made without error if desired state is 
 * reached within the the allotted time
 * @param {string}                 resource      SSM managed resource to change the state of
@@ -121,6 +96,31 @@ function changeResourceState(resource, state, callback, apf) {
       });
     }
   });
+}
+
+/**
+* Runs command and calls back without error if successful
+* @param {string}           command   command to run
+* @param {awaitJobCallback} callback  function to call after completion
+*/
+function simpleCommand(command, callback){
+  cmd.get(command, function(err, data, stderr) { 
+    if(err){
+      callback(err);
+    } else if (stderr){
+      callback(new Error("\nCommand:\n" + command + "\n" + stderr + "Stack Trace:"));
+    } else {
+      callback();
+    }
+  });
+}
+
+/**
+ * Sleep function.
+ * @param {number} ms Number of ms to sleep
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
