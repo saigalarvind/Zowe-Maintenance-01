@@ -35,7 +35,9 @@ pipeline {
             }
         }
         stage('Apply-Check Approval'){
-            input "Proceed to Apply-Check?"
+            input {
+                message "Proceed to Apply-Check?"
+            }
         }
         stage('Apply-Check') {
             steps {
@@ -45,7 +47,9 @@ pipeline {
             }
         }
         stage('Apply Approval'){
-            input "Proceed to Apply?"
+            input {
+                message "Proceed to Apply?"
+            }
         }
         stage('Apply') {
             steps {
@@ -55,7 +59,9 @@ pipeline {
             }
         }
         stage('Deploy Approval'){
-            input "Proceed to Deploy?"
+            input {
+                message "Proceed to Deploy?"
+            }
         }
         stage('Deploy') {
             steps {
