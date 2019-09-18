@@ -10,74 +10,66 @@ pipeline {
         FMP="--port 6001 --protocol http --reject-unauthorized false"
     }
     stages {
-        node {
-            stage('local setup') {
-                steps {
-                    sh 'node --version'
-                    sh 'npm --version'
-                    sh 'zowe --version'
-                    sh 'zowe plugins list'
-                    sh 'npm install gulp-cli -g'
-                    sh 'npm install'
+        stage('local setup') {
+            steps {
+                sh 'node --version'
+                sh 'npm --version'
+                sh 'zowe --version'
+                sh 'zowe plugins list'
+                sh 'npm install gulp-cli -g'
+                sh 'npm install'
+            }
+        }
+        stage('Upload Maintenance') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
+                    sh 'echo Upload Maintenance'
                 }
             }
-            stage('Upload Maintenance') {
-                steps {
-                    withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                        sh 'echo Upload Maintenance'
-                    }
-                }
-            }
-            stage('Receive') {
-                steps {
-                    withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                        sh 'echo Receive'
-                    }
+        }
+        stage('Receive') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
+                    sh 'echo Receive'
                 }
             }
         }
         stage('Apply-Check Approval'){
             input "Proceed to Apply-Check?"
         }
-        node {
-            stage('Apply-Check') {
-                steps {
-                    withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                        sh 'echo Apply-Check'
-                    }
+        stage('Apply-Check') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
+                    sh 'echo Apply-Check'
                 }
             }
         }
         stage('Apply Approval'){
             input "Proceed to Apply?"
         }
-        node {
-            stage('Apply') {
-                steps {
-                    withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                        sh 'echo Apply'
-                    }
+        stage('Apply') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
+                    sh 'echo Apply'
                 }
             }
         }
         stage('Deploy Approval'){
             input "Proceed to Deploy?"
         }
-        node {
-            stage('Deploy') {
-                steps {
-                    withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                        //To deploy the maintenace, an OPS profile needs to be created since profile options are not exposed on the command line
-                        sh 'zowe profiles create ops Jenkins --host $ZOWE_OPT_HOST --port 6007 --protocol http --user $ZOWE_OPT_USER --password $ZOWE_OPT_PASSWORD'
-                        sh 'echo Deploy'
-                    }
+        stage('Deploy') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
+                    //To deploy the maintenace, an OPS profile needs to be created since profile options are not exposed on the command line
+                    sh 'zowe profiles create ops Jenkins --host $ZOWE_OPT_HOST --port 6007 --protocol http --user $ZOWE_OPT_USER --password $ZOWE_OPT_PASSWORD'
+                    sh 'echo Deploy'
                 }
             }
-            stage('Test') {
-                steps {
-                    withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                        sh 'echo Test'
-                    }
+        }
+        stage('Test') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
+                    sh 'echo Test'
                 }
             }
         }
