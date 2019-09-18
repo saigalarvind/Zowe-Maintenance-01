@@ -211,7 +211,5 @@ gulp.task('upload', 'Upload Maintenance to USS', function (callback) {
   simpleCommand(command, callback);
 });
 
-gulp.task('deploy', 'Deploy Maintenance', gulpSequence('upload','receive','apply-check','apply','stop','copy','start'));
-gulp.task('reset', 'Reset Maintenance', gulpSequence('reject','restore','stop','copy','start'));
 gulp.task('start', 'Start SSM managed resources', gulpSequence('start1','start2'));
 gulp.task('stop', 'Stop SSM managed resources', gulpSequence('stop2', 'stop1'));

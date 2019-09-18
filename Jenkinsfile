@@ -23,7 +23,6 @@ pipeline {
         stage('Upload Maintenance') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                    // sh 'echo Upload Maintenance'
                     sh 'gulp upload'
                 }
             }
@@ -31,7 +30,6 @@ pipeline {
         stage('Receive') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                    // sh 'echo Receive'
                     sh 'gulp receive'
                 }
                 archiveArtifacts artifacts: 'job-archive/**/*.*'
@@ -67,7 +65,10 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
                     //To deploy the maintenace, an OPS profile needs to be created since profile options are not exposed on the command line
                     sh 'zowe profiles create ops Jenkins --host $ZOWE_OPT_HOST --port 6007 --protocol http --user $ZOWE_OPT_USER --password $ZOWE_OPT_PASSWORD'
-                    sh 'gulp deploy'
+                    sh 'gulp stop'
+                    sh 'gulp copy'
+                    sh 'gulp start'
+                    sh 'gulp apf'
                 }
             }
         }
