@@ -1,13 +1,8 @@
 pipeline {
     agent { label 'zowe-agent' }
     environment {
-        // z/OSMF Connection Details
-        ZOWE_OPT_HOST=credentials('eosHost')
-        ZOWE_OPT_PORT="443"
-        ZOWE_OPT_REJECT_UNAUTHORIZED=false
-
-        // File Master Plus Connection Details
-        FMP="--port 6001 --protocol http --reject-unauthorized false"
+        // z/OS Host Information
+        ZOWE_OPT_HOST=credentials('eosHost')            
     }
     stages {
         stage('local setup') {
@@ -18,6 +13,10 @@ pipeline {
                 sh 'zowe plugins list'
                 sh 'npm install gulp-cli -g'
                 sh 'npm install'
+
+                //Create zosmf and fmp profiles, env vars will provide host, user, and password details
+                sh 'zowe profiles create zosmf Jenkins --port 443 --ru false --host **** --user **** --password ****'
+                sh 'zowe profiles create fmp Jenkins --port 6001 --protocol http --host **** --user **** --password ****'
             }
         }
         stage('Upload Maintenance') {
