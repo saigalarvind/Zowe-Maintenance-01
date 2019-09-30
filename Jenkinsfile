@@ -19,6 +19,13 @@ pipeline {
                 sh 'zowe profiles create fmp Jenkins --port 6001 --protocol http --host dummy --user dummy --password dummy'
             }
         }
+        stage('Download Maintenance') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
+                    sh 'gulp download'
+                }
+            }
+        }
         stage('Upload Maintenance') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {

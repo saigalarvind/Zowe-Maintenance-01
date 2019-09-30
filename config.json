@@ -15,6 +15,8 @@
     "remoteFolder"       : "/u/users/cust001",
     "remoteJclPds"       : "CUST001.MTE.JCL",
     "runtimeEnv"         : "PRODUCT.SVRUN1.MSTRBRS",
+    "serverFile"         : "SO07157",
+    "serverFolder"       : "/u/users/baumi07",
     "smpeEnv"            : "PRODUCT.SYSV15.SMPE1",
     "ssmResource1"       : "GSV1001V",
     "ssmResource2"       : "GSV1001U"

@@ -173,6 +173,12 @@ gulp.task('copy', 'Copy Maintenance to Runtime', function (callback) {
   simpleCommand(command, callback);
 });
 
+gulp.task('download', 'Download Maintenance', function (callback) {
+  var command = 'zowe files download uf "' + config.serverFolder + '/' + config.serverFile +
+                '" -f "' + config.localFolder + '/' + config.localFile + '" -b';
+  simpleCommand(command, callback);
+});
+
 gulp.task('receive', 'Receive Maintenance', function (callback) {
   var ds = config.remoteJclPds + '(' + config.receiveMember + ')';
   submitJobAndDownloadOutput(ds, "job-archive/receive", 0, callback);
