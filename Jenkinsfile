@@ -88,7 +88,7 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: '.*-archive/**/*.*' 
+            archiveArtifacts artifacts: '*-archive/**/*.*' 
             publishHTML([allowMissing: false,
                 alwaysLinkToLastBuild: true,
                 keepAll: true,
