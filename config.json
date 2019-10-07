@@ -3,6 +3,7 @@
     "applyCheckMember"   : "APPLYCHK",
     "checkVersionMember" : "CHECKVE",
     "checkVersionSpoolId": "102",
+    "consoleName"        : "cust001",
     "expectedFixLevel"   : "SO07157",
     "localFile"          : "SO07157",
     "localFolder"        : "bin",

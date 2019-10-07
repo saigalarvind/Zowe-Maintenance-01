@@ -1,5 +1,6 @@
 var cmd = require('node-cmd'),
     config = require('./config.json'),
+    fs = require('fs'),
     gulp = require('gulp-help')(require('gulp')),
     gulpSequence = require('gulp-sequence'),
     PluginError = require('plugin-error');
@@ -34,6 +35,10 @@ function awaitSSMState(resource, desiredState, callback, tries = 30, wait = 1000
     cmd.get(
     'zowe ops show resource ' + resource,
     function (err, data, stderr) {
+      //log output
+      var content = "Error:\n" + err + "\n" + "StdErr:\n" + stderr + "\n" + "Data:\n" + data;
+      writeToFile("command-archive/show-resource", content);
+
       if(err){
         callback(err);
       } else if (stderr){
@@ -65,11 +70,13 @@ function awaitSSMState(resource, desiredState, callback, tries = 30, wait = 1000
 * @param {string}                 [apf]         data set to APF authorize if required
 */
 function changeResourceState(resource, state, callback, apf) {
-  var command;
+  var command, dir;
   if(state === "UP") {
     command = 'zowe ops start resource ' + resource;
+    dir = "command-archive/start-resource";
   } else if(state === "DOWN") {
     command = 'zowe ops stop resource ' + resource;
+    dir = "command-archive/stop-resource";
   } else{
     callback(new Error("\nUnrecognized desired state of: " + state + ". Expected UP or DOWN."));
   }
@@ -77,6 +84,10 @@ function changeResourceState(resource, state, callback, apf) {
   
   // Submit command, await completion
   cmd.get(command, function (err, data, stderr) {
+    //log output
+    var content = "Error:\n" + err + "\n" + "StdErr:\n" + stderr + "\n" + "Data:\n" + data;
+    writeToFile(dir, content);
+
     if(err){
       callback(err);
     } else if (stderr){
@@ -88,7 +99,7 @@ function changeResourceState(resource, state, callback, apf) {
           callback(err);
         } else if(typeof apf !== 'undefined'){
           // Resource state successfully changed and needs APF authorized
-          command = 'zowe console issue command "SETPROG APF,ADD,DSNAME=' + apf + ',SMS"';
+          command = 'zowe console issue command "SETPROG APF,ADD,DSNAME=' + apf + ',SMS" --cn ' + config.consoleName;
           simpleCommand(command, callback);
         } else { //Resource state is changed, does not need APF authorized
           callback();
@@ -100,15 +111,23 @@ function changeResourceState(resource, state, callback, apf) {
 
 /**
 * Runs command and calls back without error if successful
-* @param {string}           command   command to run
-* @param {awaitJobCallback} callback  function to call after completion
+* @param {string}           command           command to run
+* @param {string}           dir               directory to log output to
+* @param {awaitJobCallback} callback          function to call after completion
+* @param {Array}            [expectedOutputs] array of expected strings to be in the output
 */
-function simpleCommand(command, callback){
+function simpleCommand(command, dir, callback, expectedOutputs){
   cmd.get(command, function(err, data, stderr) { 
+    //log output
+    var content = "Error:\n" + err + "\n" + "StdErr:\n" + stderr + "\n" + "Data:\n" + data;
+    writeToFile(dir, content);
+    
     if(err){
       callback(err);
     } else if (stderr){
       callback(new Error("\nCommand:\n" + command + "\n" + stderr + "Stack Trace:"));
+    } else if(typeof expectedOutputs !== 'undefined'){
+      verifyOutput(data, expectedOutputs, callback);
     } else {
       callback();
     }
@@ -133,6 +152,10 @@ function sleep(ms) {
 function submitJobAndDownloadOutput(ds, dir="job-archive", maxRC=0, callback){
   var command = 'zowe jobs submit data-set "' + ds + '" -d ' + dir + " --rfj";
   cmd.get(command, function(err, data, stderr) { 
+    //log output
+    var content = "Error:\n" + err + "\n" + "StdErr:\n" + stderr + "\n" + "Data:\n" + data;
+    writeToFile("command-archive/job-submission", content);
+
     if(err){
       callback(err);
     } else if (stderr){
@@ -151,10 +174,48 @@ function submitJobAndDownloadOutput(ds, dir="job-archive", maxRC=0, callback){
   });
 }
 
+/**
+* Runs command and calls back without error if successful
+* @param {string}           data            command to run
+* @param {Array}            expectedOutputs array of expected strings to be in the output
+* @param {awaitJobCallback} callback        function to call after completion
+*/
+function verifyOutput(data, expectedOutputs, callback){
+  expectedOutputs.forEach(function(output){
+    if (!data.includes(output)) {
+      callback(new Error(output + " not found in response: " + data));
+    }
+  });
+  // Success
+  callback();
+}
+
+/**
+* Writes content to files
+* @param {string}           dir     directory to write content to
+* @param {string}           content content to write
+*/
+function writeToFile(dir, content) {
+  var d = new Date(),
+      filePath = dir + "/" + d.toISOString() + ".txt";
+
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  };
+  
+  fs.writeFileSync(filePath, content, function(err) {
+    if(err) {
+      return console.log(err);
+    }
+  });
+}
+
 gulp.task('apf', 'APF authorize dataset', function(callback){
-    var ds = config.runtimeEnv + '.' + config.maintainedPds;
-        command = 'zowe console issue command "SETPROG APF,ADD,DSNAME=' + ds + ',SMS"';
-    simpleCommand(command, callback);
+    var ds = config.runtimeEnv + '.' + config.maintainedPds,
+        command = 'zowe console issue command "SETPROG APF,ADD,DSNAME=' + ds + ',SMS" --cn ' + config.consoleName,
+        output = ["CSV410I", ds];
+
+    simpleCommand(command, "command-archive/apf", callback, output);
 });
 
 gulp.task('apply', 'Apply Maintenance', function (callback) {
@@ -169,14 +230,14 @@ gulp.task('apply-check', 'Apply Check Maintenance', function (callback) {
 
 gulp.task('copy', 'Copy Maintenance to Runtime', function (callback) {
   var command = 'zowe file-master-plus copy data-set "' + config.smpeEnv + '.' + config.maintainedPds + 
-                '" "' + config.runtimeEnv + '.' + config.maintainedPds + '"';
-  simpleCommand(command, callback);
+                '" "' + config.runtimeEnv + '.' + config.maintainedPds + '" --rfj';
+  simpleCommand(command, "command-archive/copy", callback);
 });
 
 gulp.task('download', 'Download Maintenance', function (callback) {
   var command = 'zowe files download uf "' + config.serverFolder + '/' + config.serverFile +
-                '" -f "' + config.localFolder + '/' + config.localFile + '" -b';
-  simpleCommand(command, callback);
+                '" -f "' + config.localFolder + '/' + config.localFile + '" -b --rfj';
+  simpleCommand(command, "command-archive/download", callback);
 });
 
 gulp.task('receive', 'Receive Maintenance', function (callback) {
@@ -212,8 +273,8 @@ gulp.task('stop2', 'Stop SSM managed resource2', function (callback) {
 
 gulp.task('upload', 'Upload Maintenance to USS', function (callback) {
   var command = 'zowe files upload ftu "' + config.localFolder + '/' + config.localFile +
-                '" "' + config.remoteFolder + '/' + config.remoteFile + '" -b';
-  simpleCommand(command, callback);
+                '" "' + config.remoteFolder + '/' + config.remoteFile + '" -b --rfj';
+  simpleCommand(command, "command-archive/upload", callback);
 });
 
 gulp.task('start', 'Start SSM managed resources', gulpSequence('start1','start2'));
