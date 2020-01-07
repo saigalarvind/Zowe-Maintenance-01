@@ -3,7 +3,8 @@ var cmd = require('node-cmd'),
     fs = require('fs'),
     gulp = require('gulp-help')(require('gulp')),
     gulpSequence = require('gulp-sequence'),
-    PluginError = require('plugin-error');
+    PluginError = require('plugin-error'),
+    readlineSync = require('readline-sync');
 
 
 /**
@@ -20,14 +21,21 @@ var cmd = require('node-cmd'),
  * @param {Error} err 
  */
 
+  /**
+  * commandObject - object contains command to submit and directory to download output to
+  * @object commandObject
+  * @param {string} command Command to submit
+  * @param {string} dir     Directory to download command output to 
+  */
+
 /**
 * Polls state of SSM managed resource. Callback is made without error if desired state is 
 * reached within the the allotted time
-* @param {string}                 resource      SSM managed resource to check the state of
-* @param {string}                 desiredState  desired state of resource
-* @param {awaitSSMStateCallback}  callback      function to call after completion
-* @param {number}                 tries         max attempts to check the completion of the job
-* @param {number}                 wait          wait time in ms between each check
+* @param {string}                 resource     SSM managed resource to check the state of
+* @param {string}                 desiredState desired state of resource
+* @param {awaitSSMStateCallback}  callback     function to call after completion
+* @param {number}                 tries        max attempts to check the completion of the job
+* @param {number}                 wait         wait time in ms between each check
 */
 function awaitSSMState(resource, desiredState, callback, tries = 30, wait = 1000) {
   if (tries > 0) {
@@ -64,10 +72,10 @@ function awaitSSMState(resource, desiredState, callback, tries = 30, wait = 1000
 /**
 * Changes state of SSM managed resource. Callback is made without error if desired state is 
 * reached within the the allotted time
-* @param {string}                 resource      SSM managed resource to change the state of
-* @param {string}                 state         desired state of resource - UP or DOWN
-* @param {awaitSSMStateCallback}  callback      function to call after completion
-* @param {string}                 [apf]         data set to APF authorize if required
+* @param {string}                 resource SSM managed resource to change the state of
+* @param {string}                 state    desired state of resource - UP or DOWN
+* @param {awaitSSMStateCallback}  callback function to call after completion
+* @param {string}                 [apf]    data set to APF authorize if required
 */
 function changeResourceState(resource, state, callback, apf) {
   var command, dir;
@@ -107,6 +115,48 @@ function changeResourceState(resource, state, callback, apf) {
       });
     }
   });
+}
+
+/**
+* Creates bmw (Brightside-Maintenance-Workshop) profiles for project and sets them as default
+* @param {string}           host     z/OS host the project is running against
+* @param {string}           user     username
+* @param {string}           pass     password
+* @param {awaitJobCallback} callback function to call after completion
+*/
+function createAndSetProfiles(host, user, pass, callback){
+  var commands = [
+    {
+      command: "zowe profiles create zosmf bmw --host " + host + " --user " + user + " --pass " +
+               pass + " --port " + config.zosmfPort + " --ru " + config.zosmfRejectUnauthorized + " --ow",
+      dir: "command-archive/create-zosmf-profile"
+    },
+    {
+      command: "zowe profiles set zosmf bmw",
+      dir: "command-archive/set-zosmf-profile"
+    },
+    {
+      command: "zowe profiles create fmp bmw --host " + host + " --user " + user + " --pass " +
+               pass + " --port " + config.fmpPort + " --ru " + config.fmpRejectUnauthorized + 
+               " --protocol " + config.fmpProtocol + " --ow",
+      dir: "command-archive/create-fmp-profile"
+    },
+    {
+      command: "zowe profiles set fmp bmw",
+      dir: "command-archive/set-fmp-profile"
+    },
+    {
+      command: "zowe profiles create ops bmw --host " + host + " --user " + user + " --pass " +
+               pass + " --port " + config.opsPort + " --ru " + config.opsRejectUnauthorized + 
+               " --protocol " + config.opsProtocol + " --ow",
+      dir: "command-archive/create-ops-profile"
+    },
+    {
+      command: "zowe profiles set ops bmw",
+      dir: "command-archive/set-ops-profile"
+    }
+  ];
+  submitMultipleSimpleCommands(commands, callback);
 }
 
 /**
@@ -172,6 +222,26 @@ function submitJobAndDownloadOutput(ds, dir="job-archive", maxRC=0, callback){
       }
     }
   });
+}
+
+/**
+* Submits multiple simple commands
+* @param {commandObject[]}  commands Array of commandObjects
+* @param {awaitJobCallback} callback function to call after completion
+*/
+function submitMultipleSimpleCommands(commands, callback){
+  if(commands.length>0){
+    simpleCommand(commands[0].command, commands[0].dir, function(err){
+      if(err){
+        callback(err);
+      } else {
+        commands.shift();
+        submitMultipleSimpleCommands(commands, callback);
+      }
+    })
+  } else {
+    callback();
+  }
 }
 
 /**
@@ -255,6 +325,14 @@ gulp.task('restore', 'Restore Maintenance', function (callback) {
   submitJobAndDownloadOutput(ds, "job-archive/restore", 0, callback);
 });
 
+gulp.task('setUpProfiles', 'Create project profiles and set them as default', function (callback) {
+  var host, user, pass;
+  host = readlineSync.question('Host name or IP address: ');
+  user = readlineSync.question('Username: ');
+  pass = readlineSync.question('Password: ', { hideEchoBack: true });
+  createAndSetProfiles(host, user, pass, callback);
+});
+
 gulp.task('start1', 'Start SSM managed resource1', function (callback) {
   changeResourceState(config.ssmResource1, "UP", callback);
 });
@@ -277,5 +355,6 @@ gulp.task('upload', 'Upload Maintenance to USS', function (callback) {
   simpleCommand(command, "command-archive/upload", callback);
 });
 
+gulp.task('reset', 'Reset maintenance level', gulpSequence('reject', 'restore', 'stop', 'copy', 'start', 'apf'));
 gulp.task('start', 'Start SSM managed resources', gulpSequence('start1','start2'));
 gulp.task('stop', 'Stop SSM managed resources', gulpSequence('stop2', 'stop1'));
