@@ -325,7 +325,7 @@ gulp.task('restore', 'Restore Maintenance', function (callback) {
   submitJobAndDownloadOutput(ds, "job-archive/restore", 0, callback);
 });
 
-gulp.task('setUpProfiles', 'Create project profiles and set them as default', function (callback) {
+gulp.task('setupProfiles', 'Create project profiles and set them as default', function (callback) {
   var host, user, pass;
   host = readlineSync.question('Host name or IP address: ');
   user = readlineSync.question('Username: ');
