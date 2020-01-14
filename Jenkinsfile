@@ -43,9 +43,11 @@ pipeline {
         }
         stage('Apply-Check') {
             steps {
-                def actions = readJSON file: 'holddata/actions.txt'
-                if (actions.remainingHolds) {
-                    input message: 'Unresolved holds detected. Please review the results of the receive job in the job-archive/receive artifacts. Proceed to Apply-Check?'
+                script {
+                    def actions = readJSON file: 'holddata/actions.txt'
+                    if (actions.remainingHolds) {
+                        input message: 'Unresolved holds detected. Please review the results of the receive job in the job-archive/receive artifacts. Proceed to Apply-Check?'
+                    }
                 }
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
                     sh 'gulp apply-check'
@@ -68,9 +70,11 @@ pipeline {
                     sh 'zowe profiles create ops Jenkins --host $ZOWE_OPT_HOST --port 6007 --protocol http --user $ZOWE_OPT_USER --password $ZOWE_OPT_PASSWORD'
                     sh 'gulp stop'
                     sh 'gulp copy'
-                    def actions = readJSON file: 'holddata/actions.txt'
-                    if (actions.restart) {
-                        sh 'gulp restartWorkflow'
+                    script{
+                        def actions = readJSON file: 'holddata/actions.txt'
+                        if (actions.restart) {
+                            sh 'gulp restartWorkflow'
+                        }
                     }
                     sh 'gulp start'
                     sh 'gulp apf'
