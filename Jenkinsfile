@@ -44,7 +44,7 @@ pipeline {
         stage('Apply-Check') {
             steps {
                 script {
-                    def actions = readJSON file: 'holddata/actions.txt'
+                    def actions = readJSON file: 'holddata/actions.json'
                     if (actions.remainingHolds) {
                         input message: 'Unresolved holds detected. Please review the results of the receive job in the job-archive/receive artifacts. Proceed to Apply-Check?'
                     }
@@ -71,7 +71,7 @@ pipeline {
                     sh 'gulp stop'
                     sh 'gulp copy'
                     script {
-                        def actions = readJSON file: 'holddata/actions.txt'
+                        def actions = readJSON file: 'holddata/actions.json'
                         if (actions.restart) {
                             sh 'gulp restartWorkflow'
                         }
@@ -91,7 +91,7 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: '*-archive/**/*.*, holddata/actions.txt' 
+            archiveArtifacts artifacts: '*-archive/**/*.*, holddata/actions.json' 
             publishHTML([allowMissing: false,
                 alwaysLinkToLastBuild: true,
                 keepAll: true,
