@@ -161,7 +161,7 @@ function createAndSetProfiles(host, user, pass, callback){
 }
 
 /**
-* Parses holddata in local file and creates holddata/actions.txt file with summarized findings
+* Parses holddata in local file and creates holddata/actions.json file with summarized findings
 * @param {string}           filepath local filePath to read Holddata from
 * @param {awaitJobCallback} callback function to call after completion
 */
@@ -184,7 +184,7 @@ function parseHolddata(filePath, callback){
           actions.remainingHolds = true;
         }
       }
-      writeToFile("holddata", "actions.txt", JSON.stringify(actions, null, 2));
+      writeToFile("holddata", "actions.json", JSON.stringify(actions, null, 2));
     } else {
         callback(err);
     }
