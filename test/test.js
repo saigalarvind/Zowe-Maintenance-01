@@ -23,7 +23,7 @@ function getModuleFixLevel(module, callback) {
   cmd.get(command, function (err, data, stderr) {
     //log output
     var content = "Error:\n" + err + "\n" + "StdErr:\n" + stderr + "\n" + "Data:\n" + data;
-    writeToFile("command-archive/job-submission", content);
+    writeToDir("command-archive/job-submission", content);
 
     if(err){
       callback(err);
@@ -70,7 +70,7 @@ function getModuleFixLevel(module, callback) {
 * @param {string}           dir     directory to write content to
 * @param {string}           content content to write
 */
-function writeToFile(dir, content) {
+function writeToDir(dir, content) {
   var d = new Date(),
       filePath = dir + "/" + d.toISOString() + ".txt";
 

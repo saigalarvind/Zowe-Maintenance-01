@@ -11,7 +11,8 @@ var cmd = require('node-cmd'),
  * await Job Callback - Callback is made without error if Job completes with 
  * CC < MaxRC in the allotted time
  * @callback awaitJobCallback
- * @param {Error} err 
+ * @param {Error}   err 
+ * @param {object}  [jobResponse]
  */
 
  /**
@@ -45,7 +46,7 @@ function awaitSSMState(resource, desiredState, callback, tries = 30, wait = 1000
     function (err, data, stderr) {
       //log output
       var content = "Error:\n" + err + "\n" + "StdErr:\n" + stderr + "\n" + "Data:\n" + data;
-      writeToFile("command-archive/show-resource", content);
+      writeToDir("command-archive/show-resource", content);
 
       if(err){
         callback(err);
@@ -94,7 +95,7 @@ function changeResourceState(resource, state, callback, apf) {
   cmd.get(command, function (err, data, stderr) {
     //log output
     var content = "Error:\n" + err + "\n" + "StdErr:\n" + stderr + "\n" + "Data:\n" + data;
-    writeToFile(dir, content);
+    writeToDir(dir, content);
 
     if(err){
       callback(err);
@@ -160,6 +161,37 @@ function createAndSetProfiles(host, user, pass, callback){
 }
 
 /**
+* Parses holddata in local file and creates holddata/actions.txt file with summarized findings
+* @param {string}           filepath local filePath to read Holddata from
+* @param {awaitJobCallback} callback function to call after completion
+*/
+function parseHolddata(filePath, callback){
+  var actions = {
+    remainingHolds: false,
+    restart: false,
+    reviewDoc:false
+  };
+
+  fs.readFile(filePath, {encoding: 'utf-8'}, function(err,data){
+    if (!err) {
+      var holds = data.split("++HOLD (" + config.expectedFixLevel + ")");
+      for(var i = 1; i<holds.length; i++){
+        if(holds[i].includes("REASON (DOC    )")){
+          actions.reviewDoc = true;
+        } else if(holds[i].includes("REASON (RESTART)")){
+          actions.restart = true;
+        } else {
+          actions.remainingHolds = true;
+        }
+      }
+      writeToFile("holddata", "actions.txt", JSON.stringify(actions, null, 2));
+    } else {
+        callback(err);
+    }
+  });
+};
+
+/**
 * Runs command and calls back without error if successful
 * @param {string}           command           command to run
 * @param {string}           dir               directory to log output to
@@ -170,7 +202,7 @@ function simpleCommand(command, dir, callback, expectedOutputs){
   cmd.get(command, function(err, data, stderr) { 
     //log output
     var content = "Error:\n" + err + "\n" + "StdErr:\n" + stderr + "\n" + "Data:\n" + data;
-    writeToFile(dir, content);
+    writeToDir(dir, content);
     
     if(err){
       callback(err);
@@ -204,7 +236,7 @@ function submitJobAndDownloadOutput(ds, dir="job-archive", maxRC=0, callback){
   cmd.get(command, function(err, data, stderr) { 
     //log output
     var content = "Error:\n" + err + "\n" + "StdErr:\n" + stderr + "\n" + "Data:\n" + data;
-    writeToFile("command-archive/job-submission", content);
+    writeToDir("command-archive/job-submission", content);
 
     if(err){
       callback(err);
@@ -216,7 +248,7 @@ function submitJobAndDownloadOutput(ds, dir="job-archive", maxRC=0, callback){
 
       //retcode should be in the form CC nnnn where nnnn is the return code
       if (retcode.split(" ")[1] <= maxRC) {
-        callback(null);
+        callback(null,data);
       } else {
         callback(new Error("Job did not complete successfully. Additional diagnostics:" + JSON.stringify(data,null,1)));
       }
@@ -265,15 +297,25 @@ function verifyOutput(data, expectedOutputs, callback){
 * @param {string}           dir     directory to write content to
 * @param {string}           content content to write
 */
-function writeToFile(dir, content) {
+function writeToDir(dir, content) {
   var d = new Date(),
-      filePath = dir + "/" + d.toISOString() + ".txt";
+      filename = d.toISOString() + ".txt";
 
+  writeToFile(dir, filename, content);
+}
+
+/**
+* Writes content to files
+* @param {string}           dir       directory to write content to
+* @param {string}           filename  filename to write content to
+* @param {string}           content   content to write
+*/
+function writeToFile(dir, filename, content) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   };
   
-  fs.writeFileSync(filePath, content, function(err) {
+  fs.writeFileSync(dir + "/" + filename, content, function(err) {
     if(err) {
       return console.log(err);
     }
@@ -312,12 +354,24 @@ gulp.task('download', 'Download Maintenance', function (callback) {
 
 gulp.task('receive', 'Receive Maintenance', function (callback) {
   var ds = config.remoteJclPds + '(' + config.receiveMember + ')';
-  submitJobAndDownloadOutput(ds, "job-archive/receive", 0, callback);
+  submitJobAndDownloadOutput(ds, "job-archive/receive", 0, function(err,jobResponse){
+    if(err){
+      callback(err);
+    } else {
+      parseHolddata("job-archive/receive/" + jobResponse.jobid + "/SMPEUCL/SMPRPT.txt", callback);
+    }
+  });
 });
 
 gulp.task('reject', 'Reject Maintenance', function (callback) {
   var ds = config.remoteJclPds + '(' + config.rejectMember + ')';
   submitJobAndDownloadOutput(ds, "job-archive/reject", 0, callback);
+});
+
+gulp.task('restartWorkflow', 'Create & trigger workflow to restart SYSVIEW', function (callback) {
+  var command = 'zowe zos-workflows start workflow-full --workflow-name ' + 
+                 config.restartWorkflowName + ' --wait';
+  console.log(command);
 });
 
 gulp.task('restore', 'Restore Maintenance', function (callback) {

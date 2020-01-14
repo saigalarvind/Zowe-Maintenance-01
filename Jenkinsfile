@@ -42,10 +42,11 @@ pipeline {
             }
         }
         stage('Apply-Check') {
-            input {
-                message "Review the results of the receive job in the job-archive/receive artifacts. Proceed to Apply-Check?"
-            }
             steps {
+                def actions = readJSON file: 'holddata/actions.txt'
+                if (actions.remainingHolds) {
+                    input message: 'Unresolved holds detected. Please review the results of the receive job in the job-archive/receive artifacts. Proceed to Apply-Check?'
+                }
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
                     sh 'gulp apply-check'
                 }
@@ -53,9 +54,6 @@ pipeline {
             }
         }
         stage('Apply') {
-            input {
-                message "Review the results of the apply-check job in the job-archive/apply-check artifacts. Proceed to Apply?"
-            }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
                     sh 'gulp apply'
@@ -64,15 +62,16 @@ pipeline {
             }
         }
         stage('Deploy') {
-            input {
-                message "Review the results of the apply job in the job-archive/apply artifacts. Proceed to Deploy?"
-            }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
                     //To deploy the maintenace, an OPS profile needs to be created since profile options are not exposed on the command line
                     sh 'zowe profiles create ops Jenkins --host $ZOWE_OPT_HOST --port 6007 --protocol http --user $ZOWE_OPT_USER --password $ZOWE_OPT_PASSWORD'
                     sh 'gulp stop'
                     sh 'gulp copy'
+                    def actions = readJSON file: 'holddata/actions.txt'
+                    if (actions.restart) {
+                        sh 'gulp restartWorkflow'
+                    }
                     sh 'gulp start'
                     sh 'gulp apf'
                 }
@@ -88,7 +87,7 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: '*-archive/**/*.*' 
+            archiveArtifacts artifacts: '*-archive/**/*.*', 'holddata/actions.txt' 
             publishHTML([allowMissing: false,
                 alwaysLinkToLastBuild: true,
                 keepAll: true,
