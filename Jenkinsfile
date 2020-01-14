@@ -70,7 +70,7 @@ pipeline {
                     sh 'zowe profiles create ops Jenkins --host $ZOWE_OPT_HOST --port 6007 --protocol http --user $ZOWE_OPT_USER --password $ZOWE_OPT_PASSWORD'
                     sh 'gulp stop'
                     sh 'gulp copy'
-                    script{
+                    script {
                         def actions = readJSON file: 'holddata/actions.txt'
                         if (actions.restart) {
                             sh 'gulp restartWorkflow'
@@ -91,7 +91,7 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: '*-archive/**/*.*', 'holddata/actions.txt' 
+            archiveArtifacts artifacts: '*-archive/**/*.*, holddata/actions.txt' 
             publishHTML([allowMissing: false,
                 alwaysLinkToLastBuild: true,
                 keepAll: true,
