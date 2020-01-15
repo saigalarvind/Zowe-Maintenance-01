@@ -371,7 +371,7 @@ gulp.task('reject', 'Reject Maintenance', function (callback) {
 gulp.task('restartWorkflow', 'Create & trigger workflow to restart SYSVIEW', function (callback) {
   var command = 'zowe zos-workflows start workflow-full --workflow-name ' + 
                  config.restartWorkflowName + ' --wait';
-  console.log(command);
+  simpleCommand(command, "command-archive/start-workflow", callback);
 });
 
 gulp.task('restore', 'Restore Maintenance', function (callback) {
