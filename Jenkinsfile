@@ -76,8 +76,8 @@ pipeline {
                             sh 'gulp restartWorkflow'
                         }
                     }
-                    sh 'gulp start'
                     sh 'gulp apf'
+                    sh 'gulp start'
                 }
             }
         }
