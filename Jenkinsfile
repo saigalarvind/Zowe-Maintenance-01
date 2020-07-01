@@ -67,7 +67,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
                     //To deploy the maintenace, an OPS profile needs to be created since profile options are not exposed on the command line
-                    sh 'zowe profiles create ops Jenkins --host $ZOWE_OPT_HOST --port 6007 --protocol http --user $ZOWE_OPT_USER --password $ZOWE_OPT_PASSWORD'
+                    sh 'zowe profiles create ops Jenkins --host $ZOWE_OPT_HOST --port 6007 --protocol https --user $ZOWE_OPT_USER --password $ZOWE_OPT_PASSWORD'
                     sh 'gulp stop'
                     sh 'gulp copy'
                     script {
