@@ -13,7 +13,7 @@
     "maintainedMember"       : "GSVCTIMR",
     "maintainedPds"          : "CNM4BLOD",
     "opsPort"                : 6007,
-    "opsProtocol"            : "http",
+    "opsProtocol"            : "https",
     "opsRejectUnauthorized"  : false,
     "receiveMember"          : "RECEIVE",
     "rejectMember"           : "REJECT",
