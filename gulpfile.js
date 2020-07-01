@@ -137,16 +137,6 @@ function createAndSetProfiles(host, user, pass, callback){
       dir: "command-archive/set-zosmf-profile"
     },
     {
-      command: "zowe profiles create fmp bmw --host " + host + " --user " + user + " --pass " +
-               pass + " --port " + config.fmpPort + " --ru " + config.fmpRejectUnauthorized + 
-               " --protocol " + config.fmpProtocol + " --ow",
-      dir: "command-archive/create-fmp-profile"
-    },
-    {
-      command: "zowe profiles set fmp bmw",
-      dir: "command-archive/set-fmp-profile"
-    },
-    {
       command: "zowe profiles create ops bmw --host " + host + " --user " + user + " --pass " +
                pass + " --port " + config.opsPort + " --ru " + config.opsRejectUnauthorized + 
                " --protocol " + config.opsProtocol + " --ow",
@@ -341,9 +331,8 @@ gulp.task('apply-check', 'Apply Check Maintenance', function (callback) {
 });
 
 gulp.task('copy', 'Copy Maintenance to Runtime', function (callback) {
-  var command = 'zowe file-master-plus copy data-set "' + config.smpeEnv + '.' + config.maintainedPds + 
-                '" "' + config.runtimeEnv + '.' + config.maintainedPds + '" --rfj';
-  simpleCommand(command, "command-archive/copy", callback);
+  var ds = config.remoteJclPds + '(' + config.copyMember + ')';
+  submitJobAndDownloadOutput(ds, "job-archive/copy", 0, callback);
 });
 
 gulp.task('download', 'Download Maintenance', function (callback) {

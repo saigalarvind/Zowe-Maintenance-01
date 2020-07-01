@@ -14,9 +14,8 @@ pipeline {
                 sh 'npm install gulp-cli -g'
                 sh 'npm install'
 
-                //Create zosmf and fmp profiles, env vars will provide host, user, and password details
+                //Create zosmf profile, env vars will provide host, user, and password details
                 sh 'zowe profiles create zosmf Jenkins --port 443 --ru false --host dummy --user dummy --password dummy'
-                sh 'zowe profiles create fmp Jenkins --port 6001 --protocol https --ru false --host dummy --user dummy --password dummy'
             }
         }
         stage('Download Maintenance') {
