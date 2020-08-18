@@ -320,6 +320,11 @@ gulp.task('apf', 'APF authorize dataset', function(callback){
     simpleCommand(command, "command-archive/apf", callback, output);
 });
 
+gulp.task('apply', 'Apply Maintenance', function (callback) {
+  var ds = config.remoteJclPds + '(' + config.applyMember + ')';
+  submitJobAndDownloadOutput(ds, "job-archive/apply", 0, callback);
+});
+
 gulp.task('apply-check', 'Apply Check Maintenance', function (callback) {
   var ds = config.remoteJclPds + '(' + config.applyCheckMember + ')';
   submitJobAndDownloadOutput(ds, "job-archive/apply-check", 0, callback);
@@ -385,6 +390,12 @@ gulp.task('stop1', 'Stop SSM managed resource1', function (callback) {
 
 gulp.task('stop2', 'Stop SSM managed resource2', function (callback) {
   changeResourceState(config.ssmResource2, "DOWN", callback);
+});
+
+gulp.task('upload', 'Upload Maintenance to USS', function (callback) {
+  var command = 'zowe files upload ftu "' + config.localFolder + '/' + config.localFile +
+                '" "' + config.remoteFolder + '/' + config.remoteFile + '" -b --rfj';
+  simpleCommand(command, "command-archive/upload", callback);
 });
 
 gulp.task('reset', 'Reset maintenance level', gulpSequence('reject', 'restore', 'stop', 'copy', 'apf', 'start'));

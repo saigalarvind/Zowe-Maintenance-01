@@ -300,6 +300,13 @@ apf:
 
 return
 
+apply:
+   task = 'apply' ; call display_init task
+   ds = remoteJclPds ||'('|| applyMember ||')'
+   call submitJobAndDownloadOutput ds, "job-archive/apply", 0
+   task = 'apply' ; call display_end task
+return
+
 apply_check:
    task = 'apply_check' ; call display_init task
    ds = remoteJclPds ||'('|| applyCheckMember ||')'
@@ -390,6 +397,15 @@ stop2:
    task = 'stop2' ; call display_end task
 return
 
+upload:
+   task = 'upload' ; call display_init task
+   command = 'zowe files upload ftu "' ,
+               || localFolder  ||'/' || localFile  ||'" "' ,
+               || remoteFolder ||'/' || remoteFile ||'" -b --rfj'
+   call simpleCommand command, "command-archive/upload"
+   task = 'upload' ; call display_end task
+return
+
 reset:
    task = 'reset' ; call display_init task
    call reject; call restore; call stop; call copy; call start; call apf
@@ -456,6 +472,7 @@ help:
    say 'Available tasks'
    say '---------------'
    say '  apf             APF authorize dataset'
+   say '  apply           Apply Maintenance'
    say '  apply_check     Apply Check Maintenance'
    say '  copy            Copy Maintenance to Runtime'
    say '  download        Download Maintenance'
@@ -472,6 +489,7 @@ help:
    say '  stop            Stop SSM managed resources'
    say '  stop1           Stop SSM managed resource1'
    say '  stop2           Stop SSM managed resource2'
+   say '  upload          Upload Maintenance to USS'
    say ''
    task = 'help' ; call display_end task
 return
