@@ -4,7 +4,7 @@ var PluginError = require('plugin-error');
 var cmd = require('node-cmd');
 var config = require('./config.json');
 
-/** asd
+/**
  * await Job Callback - Callback is made without error if Job completes with CC < MaxRC in the allotted time
  * @callback awaitJobCallback
  * @param {Error} err 
