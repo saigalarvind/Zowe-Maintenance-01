@@ -1,47 +1,14 @@
-var assert = require('assert');
-var cmd = require('node-cmd');
-var config = require('../config.json');
-
-/**
- * await Job Callback
- * @callback awaitJobCallback
- * @param {Error} err 
- */
+var assert = require('assert'),
+    cmd = require('node-cmd'),
+    config = require('../config.json'),
+    fs = require("fs");
 
 /**
  * Await FixLevel Quantity Callback
  * @callback awaitFixLevelCallback
  * @param {Error}  err 
- * @param {number} fixLevel null if module is not found in table
+ * @param {string} fixLevel null if module is not found in table
  */
-
-/**
-* Polls jobId. Callback is made without error if Job completes with CC 0000 in the allotted time
-* @param {string}           jobId     jobId to check the completion of
-* @param {awaitJobCallback} callback  function to call after completion
-* @param {number}           tries     max attempts to check the completion of the job
-* @param {number}           wait      wait time in ms between each check
-*/
-function awaitJobCompletion(jobId, callback, tries = 30, wait = 1000) {
-  if (tries > 0) {
-      sleep(wait);
-      cmd.get(
-      'bright jobs view job-status-by-jobid ' + jobId + ' --rff retcode --rft string',
-      function (err, data, stderr) {
-          retcode = data.trim();
-          if (retcode == "CC 0000") {
-            callback(null);
-          } else if (retcode == "null") {
-            awaitJobCompletion(jobId, callback, tries - 1, wait);
-          } else {
-            callback(new Error(jobId + " had a return code of " + retcode));
-          }
-      }
-      );
-  } else {
-      callback(new Error(jobId + " timed out."));
-  }
-}
 
 /**
 * Gets module fix level
@@ -50,62 +17,72 @@ function awaitJobCompletion(jobId, callback, tries = 30, wait = 1000) {
 *
 */
 function getModuleFixLevel(module, callback) {
+  var command = 'zowe jobs submit data-set "' + config.remoteJclPds + '(' + config.checkVersionMember + ')" -d "job-archive/version-check" --rfj';
+  
   // Submit job, await completion
-  cmd.get(
-    'bright jobs submit data-set "' + config.remoteJclPds + '(' + config.checkVersionMember + ')" --rff jobid --rft string',
-    function (err, data, stderr) {
-      if(err){
-        callback(err);
-      } else {
-        // Strip unwanted whitespace/newline
-        var jobId = data.trim();
+  cmd.get(command, function (err, data, stderr) {
+    //log output
+    var content = "Error:\n" + err + "\n" + "StdErr:\n" + stderr + "\n" + "Data:\n" + data;
+    writeToDir("command-archive/job-submission", content);
+
+    if(err){
+      callback(err);
+    } else if (stderr){
+      callback(new Error("\nCommand:\n" + command + "\n" + stderr + "Stack Trace:"));
+    } else {
+      data = JSON.parse(data).data;
+      var retcode = data.retcode,
+          jobid = data.jobid;
+
+      //retcode should be in the form CC nnnn where nnnn is the return code
+      if (retcode.split(" ")[1] <= 0) {
+        //success, parse downloaded spool output
+        var SYSPRINT = fs.readFileSync("./job-archive/version-check/" + jobid + "/SYSVIEW/SYSPRINT.txt", "utf-8");
         
-        // Await the jobs completion
-        awaitJobCompletion(jobId, function(err){
-          if(err){
-            callback(err);
-          } else {
-            cmd.get(
-              'bright jobs view sfbi ' + jobId + ' ' + config.checkVersionSpoolId,
-              function (err, data, stderr) {
-                if(err){
-                  callback(err);
-                } else {
-                  //First find the header
-                  var pattern = new RegExp(".*Name.*FixLevel.*");
-                  header = data.match(pattern);
+        //First find the header
+        var pattern = new RegExp(".*Name.*FixLevel.*");
+        header = SYSPRINT.match(pattern);
 
-                  //Then determine the location where the FixLevel column starts
-                  var fixLevelLocation = header[0].indexOf("FixLevel");
+        //Then determine the location where the FixLevel column starts
+        var fixLevelLocation = header[0].indexOf("FixLevel");
 
-                  //Next, find the maintained member of interest
-                  pattern = new RegExp(".*____ " + module + ".*","g");
-                  var found = data.match(pattern);
+        //Next, find the maintained member of interest
+        pattern = new RegExp(".*____ " + module + ".*","g");
+        var found = SYSPRINT.match(pattern);
 
-                  if(!found){
-                    callback(err, null);
-                  } else { //found
-                    //found should look like ____ Name TTR Alias-Of IdName Release Bld FixLevel AsmDate AsmTM AsmUser Owner MacLv ProdName
-                    //However, there may be empty entries in the row so we key off of fixLevelLocation and an ending space
-                    var fixLevel = found[0].substring(fixLevelLocation).split(" ")[0];
-                    callback(err, fixLevel);
-                  }
-                }
-              }
-            );
-          }
-        });
+        if(!found){
+          callback(err, null);
+        } else { //found
+          //found should look like ____ Name TTR Alias-Of IdName Release Bld FixLevel AsmDate AsmTM AsmUser Owner MacLv ProdName
+          //However, there may be empty entries in the row so we key off of fixLevelLocation and an ending space
+          var fixLevel = found[0].substring(fixLevelLocation).split(" ")[0];
+          callback(err, fixLevel);
+        }
+      } else {
+        callback(new Error("Job did not complete successfully. Additional diagnostics:" + JSON.stringify(data,null,1)));
       }
     }
-  );
+  });
 }
 
 /**
- * Sleep function.
- * @param {number} ms Number of ms to sleep
- */
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+* Writes content to files
+* @param {string}           dir     directory to write content to
+* @param {string}           content content to write
+*/
+function writeToDir(dir, content) {
+  var d = new Date(),
+      filePath = dir + "/" + d.toISOString() + ".txt";
+
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  };
+  
+  fs.writeFileSync(filePath, content, function(err) {
+    if(err) {
+      return console.log(err);
+    }
+  });
 }
 
 describe('Maintenance', function () {
@@ -117,14 +94,13 @@ describe('Maintenance', function () {
    * Run MODID utility to verify module is appropriately updated
    */
   describe('Module Check', function () {
-
     it('should have maintenance applied', function (done) {
       // Get Fix Level for maintained member specified in config
       getModuleFixLevel(config.maintainedMember, function(err, fixLevel){
         if(err){
           throw err;
         }
-        assert.equal(fixLevel, config.expectedFixLevel, "Fix Level is not as expected for " + config.maintainedMember);
+        //add assertion here
         done();
       });
     });
